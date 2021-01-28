@@ -1,46 +1,12 @@
-FFmpeg README
+ffmpeg-mvs README
 =============
 
-FFmpeg is a collection of libraries and tools to process multimedia content
-such as audio, video, subtitles and related metadata.
+基于ffmpeg-4.3 release二次开发，增加对VC-1、Hevc、vp6、vp8、vp9编码格式视频的运动矢量提取功能；
 
-## Libraries
+## windows msvc 编译
+  ./configure --toolchain=msvc --enable-shared --enable-version3 --enable-ffplay --enable-sdl2 --enable-gpl --prefix=host --extra-cflags="-I/d/env/SDL2-2.0.14/include/" --extra-   ldflags="-L/d/env/SDL2-2.0.14/lib/x64"
+  make -j 8
+  make install
 
-* `libavcodec` provides implementation of a wider range of codecs.
-* `libavformat` implements streaming protocols, container formats and basic I/O access.
-* `libavutil` includes hashers, decompressors and miscellaneous utility functions.
-* `libavfilter` provides a mean to alter decoded Audio and Video through chain of filters.
-* `libavdevice` provides an abstraction to access capture and playback devices.
-* `libswresample` implements audio mixing and resampling routines.
-* `libswscale` implements color conversion and scaling routines.
-
-## Tools
-
-* [ffmpeg](https://ffmpeg.org/ffmpeg.html) is a command line toolbox to
-  manipulate, convert and stream multimedia content.
-* [ffplay](https://ffmpeg.org/ffplay.html) is a minimalistic multimedia player.
-* [ffprobe](https://ffmpeg.org/ffprobe.html) is a simple analysis tool to inspect
-  multimedia content.
-* Additional small tools such as `aviocat`, `ismindex` and `qt-faststart`.
-
-## Documentation
-
-The offline documentation is available in the **doc/** directory.
-
-The online documentation is available in the main [website](https://ffmpeg.org)
-and in the [wiki](https://trac.ffmpeg.org).
-
-### Examples
-
-Coding examples are available in the **doc/examples** directory.
-
-## License
-
-FFmpeg codebase is mainly LGPL-licensed with optional components licensed under
-GPL. Please refer to the LICENSE file for detailed information.
-
-## Contributing
-
-Patches should be submitted to the ffmpeg-devel mailing list using
-`git format-patch` or `git send-email`. Github pull requests should be
-avoided because they are not part of our review process and will be ignored.
+## 测试
+  ./ffplay.exe -i test_video/test_h264.mp4
