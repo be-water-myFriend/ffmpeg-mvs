@@ -10,5 +10,5 @@ ffmpeg-mvs README
   
   make install
 
-## 测试
+## 测试步骤
   ./ffplay.exe -i test_video/test_h264.mp4
