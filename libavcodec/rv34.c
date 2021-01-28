@@ -42,6 +42,7 @@
 #include "rv34vlc.h"
 #include "rv34data.h"
 #include "rv34.h"
+#include "get_mvs.h"
 
 static inline void ZERO8x2(void* dst, int stride)
 {
@@ -1586,16 +1587,49 @@ static int finish_frame(AVCodecContext *avctx, AVFrame *pict)
     if (s->pict_type == AV_PICTURE_TYPE_B || s->low_delay) {
         if ((ret = av_frame_ref(pict, s->current_picture_ptr->f)) < 0)
             return ret;
-        ff_print_debug_info(s, s->current_picture_ptr, pict);
+        set_motion_vector_all(s, s->current_picture_ptr, pict, avctx->codec_id);
         ff_mpv_export_qp_table(s, pict, s->current_picture_ptr, FF_QSCALE_TYPE_MPEG1);
         got_picture = 1;
     } else if (s->last_picture_ptr) {
         if ((ret = av_frame_ref(pict, s->last_picture_ptr->f)) < 0)
             return ret;
-        ff_print_debug_info(s, s->last_picture_ptr, pict);
+        set_motion_vector_all(s, s->current_picture_ptr, pict, avctx->codec_id);
         ff_mpv_export_qp_table(s, pict, s->last_picture_ptr, FF_QSCALE_TYPE_MPEG1);
         got_picture = 1;
     }
+	
+#ifdef GET_MVS
+	// set mvs
+	if (s->pict_type == AV_PICTURE_TYPE_B || s->low_delay || s->last_picture_ptr)
+	{
+		t_mb_info_for_mv mb_info_mv;
+		mb_info_mv.low_delay = s->low_delay;
+		mb_info_mv.mb_width = s->mb_width;
+		mb_info_mv.mb_height = s->mb_height;
+		mb_info_mv.mb_stride = s->mb_stride;
+		mb_info_mv.mbskip_table = s->mbskip_table;
+		mb_info_mv.quarter_sample = s->quarter_sample;
+
+		if (s->pict_type == AV_PICTURE_TYPE_B || s->low_delay)
+		{
+			//Picture
+			mb_info_mv.mbtype = s->current_picture_ptr->mb_type;
+			mb_info_mv.qscale_table = s->current_picture_ptr->qscale_table;
+			mb_info_mv.motion_val[0] = s->current_picture_ptr->motion_val[0];
+			mb_info_mv.motion_val[1] = s->current_picture_ptr->motion_val[1];
+			av_frame_ref(pict, s->current_picture_ptr->f);
+			set_motion_vector(s->avctx, pict, &mb_info_mv);
+		} else {
+			//Picture
+			mb_info_mv.mbtype = s->last_picture_ptr->mb_type;
+			mb_info_mv.qscale_table = s->last_picture_ptr->qscale_table;
+			mb_info_mv.motion_val[0] = s->last_picture_ptr->motion_val[0];
+			mb_info_mv.motion_val[1] = s->last_picture_ptr->motion_val[1];
+			av_frame_ref(pict, s->last_picture_ptr->f);
+			set_motion_vector(s->avctx, pict, &mb_info_mv);
+		}
+	}
+#endif
 
     return got_picture;
 }

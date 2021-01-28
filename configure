@@ -2425,6 +2425,7 @@ CONFIG_EXTRA="
     vp8dsp
     wma_freqs
     wmv2dsp
+	get_mvs
 "
 
 CMDLINE_SELECT="

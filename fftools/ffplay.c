@@ -47,6 +47,8 @@
 #include "libavutil/opt.h"
 #include "libavcodec/avfft.h"
 #include "libswresample/swresample.h"
+#include "libavutil/motion_vector.h"
+
 
 #if CONFIG_AVFILTER
 # include "libavfilter/avfilter.h"
@@ -630,8 +632,23 @@ static int decoder_decode_frame(Decoder *d, AVFrame *frame, AVSubtitle *sub) {
                     avcodec_flush_buffers(d->avctx);
                     return 0;
                 }
-                if (ret >= 0)
+                if (ret >= 0) {
+                    int i;
+                    AVFrameSideData *sd;
+
+                    sd = av_frame_get_side_data(frame, AV_FRAME_DATA_MOTION_VECTORS);
+                    if (sd) {
+                        const AVMotionVector *mvs = (const AVMotionVector *)sd->data;
+                        for (i = 0; i < sd->size / sizeof(*mvs); i++) {
+                            const AVMotionVector *mv = &mvs[i];
+                            printf("%d,%2d,%2d,%2d,%4d,%4d,%4d,%4d,0x%"PRIx64"\n",
+                                d->avctx->frame_number, mv->source,
+                                mv->w, mv->h, mv->src_x, mv->src_y,
+                                mv->dst_x, mv->dst_y, mv->flags);
+                        }
+                    }
                     return 1;
+                }
             } while (ret != AVERROR(EAGAIN));
         }
 
@@ -2633,6 +2650,9 @@ static int stream_component_open(VideoState *is, int stream_index)
         av_dict_set_int(&opts, "lowres", stream_lowres, 0);
     if (avctx->codec_type == AVMEDIA_TYPE_VIDEO || avctx->codec_type == AVMEDIA_TYPE_AUDIO)
         av_dict_set(&opts, "refcounted_frames", "1", 0);
+	if (avctx->codec_type == AVMEDIA_TYPE_VIDEO) {
+        av_dict_set(&opts, "flags2", "+export_mvs", 0);
+    }
     if ((ret = avcodec_open2(avctx, codec, &opts)) < 0) {
         goto fail;
     }
@@ -3767,6 +3787,9 @@ int main(int argc, char **argv)
             do_exit(NULL);
         }
     }
+
+	av_log_set_level(AV_LOG_DEBUG);
+
 
     is = stream_open(input_filename, file_iformat);
     if (!is) {

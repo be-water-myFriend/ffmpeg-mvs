@@ -39,7 +39,7 @@
 #include "vc1.h"
 #include "vc1data.h"
 #include "libavutil/avassert.h"
-
+#include "get_mvs.h"
 
 #if CONFIG_WMV3IMAGE_DECODER || CONFIG_VC1IMAGE_DECODER
 
@@ -1156,14 +1156,19 @@ image:
         *got_frame = 1;
     } else {
         if (s->pict_type == AV_PICTURE_TYPE_B || s->low_delay) {
-            if ((ret = av_frame_ref(pict, s->current_picture_ptr->f)) < 0)
-                goto err;
-            ff_print_debug_info(s, s->current_picture_ptr, pict);
+			if ((ret = av_frame_ref(pict, s->current_picture_ptr->f)) < 0) {
+					av_log(NULL, AV_LOG_ERROR, "av_frame_ref failed. ret=%d\n", ret);
+					goto err;
+				}
+			set_motion_vector_all(s, s->current_picture_ptr, pict, avctx->codec_id);
+
             *got_frame = 1;
         } else if (s->last_picture_ptr) {
-            if ((ret = av_frame_ref(pict, s->last_picture_ptr->f)) < 0)
+            if ((ret = av_frame_ref(pict, s->last_picture_ptr->f)) < 0) {
+                av_log(NULL, AV_LOG_ERROR, "av_frame_ref failed. ret=%d\n", ret);
                 goto err;
-            ff_print_debug_info(s, s->last_picture_ptr, pict);
+            }
+            set_motion_vector_all(s, s->last_picture_ptr, pict, avctx->codec_id);
             *got_frame = 1;
         }
     }

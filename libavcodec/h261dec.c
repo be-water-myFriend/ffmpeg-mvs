@@ -33,6 +33,7 @@
 #include "h263.h"
 #include "h261.h"
 #include "internal.h"
+#include "get_mvs.h"
 
 #define H261_MBA_VLC_BITS 9
 #define H261_MTYPE_VLC_BITS 6
@@ -660,7 +661,7 @@ retry:
 
     if ((ret = av_frame_ref(pict, s->current_picture_ptr->f)) < 0)
         return ret;
-    ff_print_debug_info(s, s->current_picture_ptr, pict);
+    set_motion_vector_all(s, s->current_picture_ptr, pict, avctx->codec_id);
 
     *got_frame = 1;
 
