@@ -40,6 +40,21 @@ test.obj
 /tools/python/__pycache__/
 
 /host/
+/doc/
+/ffbuild/
+
+libavcodec/bsf_list.c
+libavcodec/codec_list.c
+libavcodec/parser_list.c
+libavdevice/indev_list.c
+libavdevice/outdev_list.c
+libavfilter/filter_list.c
+libavformat/demuxer_list.c
+libavformat/muxer_list.c
+libavformat/protocol_list.c
+libavutil/avconfig.h
+libavutil/ffversion.h
+
 ._*
 /.gitattributes
 /.gitignore
