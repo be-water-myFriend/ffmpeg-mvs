@@ -1434,11 +1434,11 @@ void ff_mpv_frame_end(MpegEncContext *s)
         ff_thread_report_progress(&s->current_picture_ptr->tf, INT_MAX, 0);
 }
 
-void ff_print_debug_info(MpegEncContext *s, Picture *p, AVFrame *pict)
+void ff_print_debug_info(MpegEncContext *s, Picture *p, AVFrame *pict, enum AVCodecID id)
 {
     ff_print_debug_info2(s->avctx, pict, s->mbskip_table, p->mb_type,
                          p->qscale_table, p->motion_val, &s->low_delay,
-                         s->mb_width, s->mb_height, s->mb_stride, s->quarter_sample);
+                         s->mb_width, s->mb_height, s->mb_stride, s->quarter_sample, id);
 }
 
 int ff_mpv_export_qp_table(MpegEncContext *s, AVFrame *f, Picture *p, int qp_type)

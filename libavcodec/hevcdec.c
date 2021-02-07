@@ -43,6 +43,8 @@
 #include "hevcdec.h"
 #include "hwconfig.h"
 #include "profiles.h"
+#include "get_mvs.h"
+
 
 const uint8_t ff_hevc_pel_weight[65] = { [2] = 0, [4] = 1, [6] = 2, [8] = 3, [12] = 4, [16] = 5, [24] = 6, [32] = 7, [48] = 8, [64] = 9 };
 
@@ -3248,6 +3250,27 @@ static int hevc_decode_frame(AVCodecContext *avctx, void *data, int *got_output,
     s->sei.picture_hash.is_md5 = 0;
 
     if (s->is_decoded) {
+
+#ifdef GET_MVS
+        // set mvs
+        {
+            t_mb_info_for_mv mb_info_mv;
+            mb_info_mv.low_delay = 0;
+            mb_info_mv.mb_width = h->mb_width;
+            mb_info_mv.mb_height = h->mb_height;
+            mb_info_mv.mb_stride = h->mb_stride;
+            mb_info_mv.mbskip_table = NULL;
+            mb_info_mv.quarter_sample = 1;
+
+            //Picture
+            mb_info_mv.mbtype = out->mb_type;
+            mb_info_mv.qscale_table = out->qscale_table;
+            mb_info_mv.motion_val[0] = out->motion_val[0];
+            mb_info_mv.motion_val[1] = out->motion_val[1];
+            set_motion_vector_hevc(avctx, data, &mb_info_mv);
+        }
+#endif
+
         av_log(avctx, AV_LOG_DEBUG, "Decoded frame with POC %d.\n", s->poc);
         s->is_decoded = 0;
     }

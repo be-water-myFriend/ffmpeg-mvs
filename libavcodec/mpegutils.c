@@ -103,7 +103,7 @@ void ff_draw_horiz_band(AVCodecContext *avctx,
 void ff_print_debug_info2(AVCodecContext *avctx, AVFrame *pict, uint8_t *mbskip_table,
                          uint32_t *mbtype_table, int8_t *qscale_table, int16_t (*motion_val[2])[2],
                          int *low_delay,
-                         int mb_width, int mb_height, int mb_stride, int quarter_sample)
+                         int mb_width, int mb_height, int mb_stride, int quarter_sample, enum AVCodecID id)
 {
     if ((avctx->export_side_data & AV_CODEC_EXPORT_DATA_MVS) && mbtype_table && motion_val[0]) {
         const int shift = 1 + quarter_sample;
@@ -116,15 +116,19 @@ void ff_print_debug_info2(AVCodecContext *avctx, AVFrame *pict, uint8_t *mbskip_
         /* size is width * height * 2 * 4 where 2 is for directions and 4 is
          * for the maximum number of MB (4 MB in case of IS_8x8) */
         AVMotionVector *mvs = av_malloc_array(mb_width * mb_height, 2 * 4 * sizeof(AVMotionVector));
-        if (!mvs)
+        if (!mvs) {
+            av_log(NULL, AV_LOG_ERROR, "mvs is NULL\n");
             return;
+        }
 
         for (mb_y = 0; mb_y < mb_height; mb_y++) {
             for (mb_x = 0; mb_x < mb_width; mb_x++) {
                 int i, direction, mb_type = mbtype_table[mb_x + mb_y * mb_stride];
                 for (direction = 0; direction < 2; direction++) {
-                    if (!USES_LIST(mb_type, direction))
+                    if ( id != AV_CODEC_ID_VC1 && (!USES_LIST(mb_type, direction))) {
+                        av_log(NULL, AV_LOG_ERROR, "continue\n");
                         continue;
+                    }
                     if (IS_8X8(mb_type)) {
                         for (i = 0; i < 4; i++) {
                             int sx = mb_x * 16 + 4 + 8 * (i & 1);
@@ -179,6 +183,7 @@ void ff_print_debug_info2(AVCodecContext *avctx, AVFrame *pict, uint8_t *mbskip_
             av_log(avctx, AV_LOG_DEBUG, "Adding %d MVs info to frame %d\n", mbcount, avctx->frame_number);
             sd = av_frame_new_side_data(pict, AV_FRAME_DATA_MOTION_VECTORS, mbcount * sizeof(AVMotionVector));
             if (!sd) {
+                av_log(NULL, AV_LOG_ERROR, "av_frame_new_side_data failed.\n");
                 av_freep(&mvs);
                 return;
             }
@@ -189,9 +194,10 @@ void ff_print_debug_info2(AVCodecContext *avctx, AVFrame *pict, uint8_t *mbskip_
     }
 
     /* TODO: export all the following to make them accessible for users (and filters) */
-    if (avctx->hwaccel || !mbtype_table)
+    if (avctx->hwaccel || !mbtype_table) {
+        av_log(NULL, AV_LOG_ERROR, "avctx->hwaccel || !mbtype_table\n");
         return;
-
+    }
 
     if (avctx->debug & (FF_DEBUG_SKIP | FF_DEBUG_QP | FF_DEBUG_MB_TYPE)) {
         int x,y;
@@ -278,7 +284,7 @@ void ff_print_debug_info2(AVCodecContext *avctx, AVFrame *pict, uint8_t *mbskip_
 
         ret = av_pix_fmt_get_chroma_sub_sample (avctx->pix_fmt, &h_chroma_shift, &v_chroma_shift);
         if (ret)
-            return ret;
+            return;
 
         av_frame_make_writable(pict);
 

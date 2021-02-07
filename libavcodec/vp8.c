@@ -34,6 +34,8 @@
 #include "thread.h"
 #include "vp8.h"
 #include "vp8data.h"
+#include "get_mvs.h"
+
 
 #if ARCH_ARM
 #   include "arm/vp8.h"
@@ -2358,6 +2360,51 @@ static int vp8_decode_mv_mb_modes(AVCodecContext *avctx, VP8Frame *cur_frame,
 #define update_pos(td, mb_y, mb_x) while(0)
 #endif
 
+
+/*
+* function: coollect_mvs_for_vp8
+* paramter:
+*     VP8Context *s: vp8 context;
+*/
+#define BLOCK_X_VP8 (2 * mb_x + (k & 1))
+#define BLOCK_Y_VP8 (2 * mb_y + (k >> 1))
+static void collect_mvs_for_vp8(VP8Context *s)
+{
+    int current_fragment;
+    int k;
+    int mb_y = 0; 
+    int mb_x = 0;
+
+    if (s->motion_val[0] == NULL)
+    {
+        return;
+    }
+    if (s->motion_val[1] == NULL)
+    {
+        return;
+    }
+    VP8Macroblock mb_info;
+    for (mb_y = 0; mb_y < s->mb_height; mb_y++)
+    {
+        for (mb_x = 0; mb_x < s->mb_width; mb_x++)
+        {
+            //int mb_type = s->macroblocks[mb_y * s->mb_width + mb_x].type;
+            mb_info = s->macroblocks[mb_y * s->mb_width + mb_x];
+            //if (mb_type == VP8_MVMODE_)
+            {
+                for (k = 0; k < 4; k++) {
+                    current_fragment = BLOCK_Y_VP8 * s->mb_width + BLOCK_X_VP8;
+                    s->motion_val[0][current_fragment][0] = mb_info.mv.x;
+                    s->motion_val[0][current_fragment][1] = mb_info.mv.y;
+                }
+            }
+
+        }
+    }
+
+    return;
+}
+
 static av_always_inline int decode_mb_row_no_filter(AVCodecContext *avctx, void *tdata,
                                         int jobnr, int threadnr, int is_vp7)
 {
@@ -2482,6 +2529,11 @@ static av_always_inline int decode_mb_row_no_filter(AVCodecContext *avctx, void 
         } else {
             update_pos(td, mb_y, mb_x);
         }
+
+        //get motion vector
+        collect_mvs_for_vp8(s);
+        //get motion vector end
+
     }
     return 0;
 }
@@ -2794,6 +2846,13 @@ skip_decode:
     if (!s->invisible) {
         if ((ret = av_frame_ref(data, curframe->tf.f)) < 0)
             return ret;
+        set_motion_vector_core(avctx, (AVFrame *)data, NULL,
+                    NULL,
+                    NULL,
+                    s->motion_val,
+                    NULL,
+                    s->mb_width, s->mb_height, s->mb_width, 1, AV_CODEC_ID_VP8);
+
         *got_frame = 1;
     }
 
