@@ -2377,13 +2377,17 @@ static void collect_mvs_for_vp8(VP8Context *s)
 
     if (s->motion_val[0] == NULL)
     {
+        av_log(NULL, AV_LOG_ERROR, "s->motion_val[0] is NULL\n");
         return;
     }
     if (s->motion_val[1] == NULL)
     {
+        av_log(NULL, AV_LOG_ERROR, "s->motion_val[1] is NULL\n");
         return;
     }
+ 
     VP8Macroblock mb_info;
+ 
     for (mb_y = 0; mb_y < s->mb_height; mb_y++)
     {
         for (mb_x = 0; mb_x < s->mb_width; mb_x++)
@@ -2844,8 +2848,11 @@ skip_decode:
         s->prob[0] = s->prob[1];
 
     if (!s->invisible) {
-        if ((ret = av_frame_ref(data, curframe->tf.f)) < 0)
+        if ((ret = av_frame_ref(data, curframe->tf.f)) < 0) {
+            av_log(NULL, AV_LOG_ERROR, "av_frame_ref. ret=%d\n",ret);
             return ret;
+        }
+ 
         set_motion_vector_core(avctx, (AVFrame *)data, NULL,
                     NULL,
                     NULL,
@@ -2926,6 +2933,25 @@ int vp78_decode_init(AVCodecContext *avctx, int is_vp7)
         ff_vp8dsp_init(&s->vp8dsp);
         s->decode_mb_row_no_filter = vp8_decode_mb_row_no_filter;
         s->filter_mb_row           = vp8_filter_mb_row;
+
+        int fragment_width = avctx->width / VP8_FRAGMENT_PIXELS;
+        int fragment_height = avctx->height / VP8_FRAGMENT_PIXELS;
+        int y_fragment_count = fragment_width * fragment_height;
+        int c_fragment_count = y_fragment_count/4;
+
+        if (s->motion_val[0]){
+            av_freep(&s->motion_val[0]);
+        }
+        if (s->motion_val[1]) {
+            av_freep(&s->motion_val[1]);
+        }
+
+        s->motion_val[0] = av_mallocz_array(y_fragment_count, sizeof(*s->motion_val[0]));
+        s->motion_val[1] = av_mallocz_array(c_fragment_count, sizeof(*s->motion_val[1]));
+        if (!s->motion_val[0]        || !s->motion_val[1])
+        {
+            av_log(NULL, AV_LOG_ERROR, "motion val is NULL.\n");
+        }
     }
 
     /* does not change for VP8 */

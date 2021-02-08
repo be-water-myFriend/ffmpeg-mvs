@@ -38,6 +38,8 @@
 
 #define VP8_MAX_QUANT 127
 
+#define VP8_FRAGMENT_PIXELS 8
+
 enum dct_token {
     DCT_0,
     DCT_1,

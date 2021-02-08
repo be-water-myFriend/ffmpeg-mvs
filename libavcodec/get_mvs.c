@@ -74,7 +74,7 @@ void set_motion_vector_core(AVCodecContext *avctx, AVFrame *pict, uint8_t *mbski
                          int *low_delay,
                          int mb_width, int mb_height, int mb_stride, int quarter_sample, enum AVCodecID id)
 {
-    if ((avctx->export_side_data & AV_CODEC_EXPORT_DATA_MVS) && mbtype_table && motion_val[0]) {
+    if ((avctx->export_side_data & AV_CODEC_EXPORT_DATA_MVS) && (mbtype_table || id == AV_CODEC_ID_VP8) && motion_val[0]) {
         const int shift = 1 + quarter_sample;
         const int scale = 1 << shift;
         const int mv_sample_log2 = avctx->codec_id == AV_CODEC_ID_H264 || avctx->codec_id == AV_CODEC_ID_SVQ3 ? 2 : 1;
@@ -99,8 +99,10 @@ void set_motion_vector_core(AVCodecContext *avctx, AVFrame *pict, uint8_t *mbski
                     for (i = 0; i < 4; i++) {
                         int sx = mb_x * 16 + 4 + 8 * (i & 1);
                         int sy = mb_y * 16 + 4 + 8 * (i >> 1);
-                        int xy = (mb_x * 2 + (i & 1) +
-                                (mb_y * 2 + (i >> 1)) * mv_stride) << (mv_sample_log2 - 1);
+                        int xy = (mb_x * 2 + (i & 1)) +
+                                (mb_y * 2 + (i >> 1)) * mb_width;
+#define BLOCK_X_VP8 (2 * mb_x + (k & 1))
+#define BLOCK_Y_VP8 (2 * mb_y + (k >> 1))
                         int mx = motion_val[direction][xy][0];
                         int my = motion_val[direction][xy][1];
                         mbcount += add_mb_vp8(mvs + mbcount, sx, sy, mx, my, scale, direction);
