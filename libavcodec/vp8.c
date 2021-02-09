@@ -2362,13 +2362,13 @@ static int vp8_decode_mv_mb_modes(AVCodecContext *avctx, VP8Frame *cur_frame,
 
 
 /*
-* function: coollect_mvs_for_vp8
+* function: collect_mvs
 * paramter:
 *     VP8Context *s: vp8 context;
 */
 #define BLOCK_X_VP8 (2 * mb_x + (k & 1))
 #define BLOCK_Y_VP8 (2 * mb_y + (k >> 1))
-static void collect_mvs_for_vp8(VP8Context *s)
+static void collect_mvs(VP8Context *s)
 {
     int current_fragment;
     int k;
@@ -2535,7 +2535,7 @@ static av_always_inline int decode_mb_row_no_filter(AVCodecContext *avctx, void 
         }
 
         //get motion vector
-        collect_mvs_for_vp8(s);
+        collect_mvs(s);
         //get motion vector end
 
     }
@@ -2890,6 +2890,13 @@ av_cold int ff_vp8_decode_free(AVCodecContext *avctx)
 
     if (!s)
         return 0;
+
+    if (s->motion_val[0]){
+        av_freep(&s->motion_val[0]);
+    }
+    if (s->motion_val[1]) {
+        av_freep(&s->motion_val[1]);
+    }
 
     vp8_decode_flush_impl(avctx, 1);
     for (i = 0; i < FF_ARRAY_ELEMS(s->frames); i++)

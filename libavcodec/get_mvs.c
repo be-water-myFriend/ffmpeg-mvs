@@ -191,6 +191,58 @@ void set_motion_vector_all(MpegEncContext *s, Picture *p, AVFrame *pict, enum AV
                          s->mb_width, s->mb_height, s->mb_stride, s->quarter_sample, id);
 }
 
+void set_motion_vector_core_hevc(AVCodecContext *avctx, AVFrame *pict, int16_t (*motion_val[2])[2],
+                        int quarter_sample, enum AVCodecID id)
+{
+    if ((avctx->export_side_data & AV_CODEC_EXPORT_DATA_MVS) && motion_val[0]) {
+        const int shift = 1 + quarter_sample;
+        const int scale = 1 << shift;
+        int blk8x8_x, blk8x8_y, mbcount = 0;
+        int blk8x8_num_x = avctx->width/8;
+        int blk8x8_num_y = avctx->height/8;
+        /* size is width * height * 2 * 4 where 2 is for directions and 4 is
+         * for the maximum number of MB (4 MB in case of IS_8x8) */
+        AVMotionVector *mvs = av_malloc_array(blk8x8_num_x * blk8x8_num_y, 2 * sizeof(AVMotionVector));
+        if (!mvs) {
+            av_log(NULL, AV_LOG_ERROR, "mvs is NULL\n");
+            return;
+        }
+
+        if (id == AV_CODEC_ID_HEVC)
+        {
+            int direction = 0;      //we just only need luma motion vector in HEVC.
+            int i = 0;
+            for (blk8x8_y = 0; blk8x8_y < blk8x8_num_y; blk8x8_y++) {
+                for (blk8x8_x = 0; blk8x8_x < blk8x8_num_x; blk8x8_x++) {
+                    int sx = blk8x8_x * 8;
+                    int sy = blk8x8_y * 8;
+                    int xy = blk8x8_x + (blk8x8_y * blk8x8_num_x);
+
+                    int mx = motion_val[direction][xy][0];
+                    int my = motion_val[direction][xy][1];
+                    mbcount += add_mb_vp8(mvs + mbcount, sx, sy, mx, my, scale, direction);
+                }
+            }
+        }
+
+
+        if (mbcount) {
+            AVFrameSideData *sd;
+
+            av_log(avctx, AV_LOG_DEBUG, "Adding %d MVs info to frame %d\n", mbcount, avctx->frame_number);
+            sd = av_frame_new_side_data(pict, AV_FRAME_DATA_MOTION_VECTORS, mbcount * sizeof(AVMotionVector));
+            if (!sd) {
+                av_log(NULL, AV_LOG_ERROR, "av_frame_new_side_data failed.\n");
+                av_freep(&mvs);
+                return;
+            }
+            memcpy(sd->data, mvs, mbcount * sizeof(AVMotionVector));
+        }
+
+        av_freep(&mvs);
+    }
+}
+
 #if 0
 #define COLOR(theta, r) \
                 u = (int)(128 + r * cos(theta * M_PI / 180)); \

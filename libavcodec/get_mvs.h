@@ -47,3 +47,5 @@ void set_motion_vector_core(AVCodecContext *avctx, AVFrame *pict, uint8_t *mbski
                          int mb_width, int mb_height, int mb_stride, int quarter_sample, enum AVCodecID id);
 void set_motion_vector(AVCodecContext *avctx, AVFrame *pict, t_mb_info_for_mv *mb_info_mv);
 void set_motion_vector_hevc(AVCodecContext *avctx, AVFrame *pict, t_mb_info_for_mv *mb_info_mv);
+void set_motion_vector_core_hevc(AVCodecContext *avctx, AVFrame *pict, int16_t (*motion_val[2])[2],
+                        int quarter_sample, enum AVCodecID id);

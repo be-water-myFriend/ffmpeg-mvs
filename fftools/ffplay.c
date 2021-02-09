@@ -647,7 +647,7 @@ static int decoder_decode_frame(Decoder *d, AVFrame *frame, AVSubtitle *sub) {
                             //    d->avctx->frame_number, mv->source,
                             //    mv->w, mv->h, mv->src_x, mv->src_y,
                             //    mv->dst_x, mv->dst_y, mv->flags);
-                            //printf("%d,motion_x=%d, motion_y=%d,motion_scale=%d, mv_x is %d, mv_y is %d\n", d->avctx->frame_number, mv->motion_x, mv->motion_y, mv->motion_scale,(mv->src_x-mv->dst_x)*mv->motion_scale, (mv->src_y-mv->dst_y)*mv->motion_scale);
+                            printf("%d,motion_x=%d, motion_y=%d,motion_scale=%d, mv_x is %d, mv_y is %d\n", d->avctx->frame_number, mv->motion_x, mv->motion_y, mv->motion_scale,(mv->src_x-mv->dst_x)*mv->motion_scale, (mv->src_y-mv->dst_y)*mv->motion_scale);
                         }
                         av_log(NULL, AV_LOG_ERROR, "sd end\n");
                     }
