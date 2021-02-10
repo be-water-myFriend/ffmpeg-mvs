@@ -38,6 +38,8 @@
 
 #define VP8_MAX_QUANT 127
 
+#define VP8_FRAGMENT_PIXELS 8
+
 enum dct_token {
     DCT_0,
     DCT_1,
@@ -339,6 +341,12 @@ typedef struct VP8Context {
     uint8_t feature_present_prob[4];
     uint8_t feature_index_prob[4][3];
     uint8_t feature_value[4][4];
+
+
+    /**
+     * Macroblock motioon vector
+     */
+    int16_t (*motion_val[2])[2];
 } VP8Context;
 
 int ff_vp8_decode_init(AVCodecContext *avctx);

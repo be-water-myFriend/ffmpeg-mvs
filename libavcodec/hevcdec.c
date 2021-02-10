@@ -43,6 +43,8 @@
 #include "hevcdec.h"
 #include "hwconfig.h"
 #include "profiles.h"
+#include "get_mvs.h"
+
 
 const uint8_t ff_hevc_pel_weight[65] = { [2] = 0, [4] = 1, [6] = 2, [8] = 3, [12] = 4, [16] = 5, [24] = 6, [32] = 7, [48] = 8, [64] = 9 };
 
@@ -1797,6 +1799,53 @@ static void hevc_luma_mv_mvp_mode(HEVCContext *s, int x0, int y0, int nPbW,
     }
 }
 
+/*
+* function: collect_mvs
+* paramter:
+*     VP8Context *s: vp8 context;
+*/
+
+static void collect_mvs(HEVCContext *s, int x0, int y0,
+                                int nPbW, int nPbH,
+                                int log2_cb_size, int partIdx, int idx)
+{
+    int k;
+    int blk8x8_stride_x = 0;
+    int blk8x8_stride_y = 0;
+    int blk8x8_index = 0;
+    int blk8x8_index_x = 0;
+    int blk8x8_index_y = 0;
+
+    if (s->motion_val[0] == NULL)
+    {
+        av_log(NULL, AV_LOG_ERROR, "s->motion_val[0] is NULL\n");
+        return;
+    }
+    if (s->motion_val[1] == NULL)
+    {
+        av_log(NULL, AV_LOG_ERROR, "s->motion_val[1] is NULL\n");
+        return;
+    }
+ 
+    blk8x8_stride_x = nPbW/8 - 1;
+    blk8x8_stride_y = nPbH/8 - 1;
+    if (x0 = 0) {
+        blk8x8_index_x = 0;
+    } else {
+        blk8x8_index_x = x0/8 - 1;
+    }
+    if (y0 = 0) {
+        blk8x8_index_y = 0;
+    } else {
+        blk8x8_index_y = y0/8 - 1;
+    }
+
+    // transform hevc CU to 8x8 block.
+    //
+
+    return;
+}
+
 static void hls_prediction_unit(HEVCContext *s, int x0, int y0,
                                 int nPbW, int nPbH,
                                 int log2_cb_size, int partIdx, int idx)
@@ -1860,12 +1909,37 @@ static void hls_prediction_unit(HEVCContext *s, int x0, int y0,
             return;
         hevc_await_progress(s, ref1, &current_mv.mv[1], y0, nPbH);
     }
+    int x0_c = x0 >> s->ps.sps->hshift[1];
+    int y0_c = y0 >> s->ps.sps->vshift[1];
+    int nPbW_c = nPbW >> s->ps.sps->hshift[1];
+    int nPbH_c = nPbH >> s->ps.sps->vshift[1];
 
+    // add for motion vector
+    int blk8x8_start_x,blk8x8_start_y;
+    int blk8x8_num_x,blk8x8_num_y;
+    blk8x8_start_x = x0/8;
+    blk8x8_start_y = y0/8;
+
+    blk8x8_num_x = nPbW/8;
+    blk8x8_num_y = nPbH/8;
+
+    int current_fragment = 0;
+    // add end
+
+    if (s->motion_val[0] == NULL)
+    {
+        av_log(NULL, AV_LOG_ERROR, "hevc s->motion_val[0] is NULL\n");
+    }
+    if (s->motion_val[1] == NULL)
+    {
+        av_log(NULL, AV_LOG_ERROR, "hevc s->motion_val[1] is NULL\n");
+    }
+ 
     if (current_mv.pred_flag == PF_L0) {
-        int x0_c = x0 >> s->ps.sps->hshift[1];
-        int y0_c = y0 >> s->ps.sps->vshift[1];
-        int nPbW_c = nPbW >> s->ps.sps->hshift[1];
-        int nPbH_c = nPbH >> s->ps.sps->vshift[1];
+        //int x0_c = x0 >> s->ps.sps->hshift[1];
+        //int y0_c = y0 >> s->ps.sps->vshift[1];
+        //int nPbW_c = nPbW >> s->ps.sps->hshift[1];
+        //int nPbH_c = nPbH >> s->ps.sps->vshift[1];
 
         luma_mc_uni(s, dst0, s->frame->linesize[0], ref0->frame,
                     &current_mv.mv[0], x0, y0, nPbW, nPbH,
@@ -1880,11 +1954,21 @@ static void hls_prediction_unit(HEVCContext *s, int x0, int y0,
                           0, x0_c, y0_c, nPbW_c, nPbH_c, &current_mv,
                           s->sh.chroma_weight_l0[current_mv.ref_idx[0]][1], s->sh.chroma_offset_l0[current_mv.ref_idx[0]][1]);
         }
+
+        for (int i = 0; i < blk8x8_num_y; i++) {
+            for(int k = 0; k < blk8x8_num_x; k++) {
+                current_fragment = (blk8x8_start_y + i) * s->blk8x8_width + blk8x8_start_x + k;
+                s->motion_val[0][current_fragment][0] = current_mv.mv[0].x;
+                s->motion_val[0][current_fragment][1] = current_mv.mv[0].y;
+                s->motion_ref[current_fragment] = 0;
+            }
+        }
+
     } else if (current_mv.pred_flag == PF_L1) {
-        int x0_c = x0 >> s->ps.sps->hshift[1];
-        int y0_c = y0 >> s->ps.sps->vshift[1];
-        int nPbW_c = nPbW >> s->ps.sps->hshift[1];
-        int nPbH_c = nPbH >> s->ps.sps->vshift[1];
+        //int x0_c = x0 >> s->ps.sps->hshift[1];
+        //int y0_c = y0 >> s->ps.sps->vshift[1];
+        //int nPbW_c = nPbW >> s->ps.sps->hshift[1];
+        //int nPbH_c = nPbH >> s->ps.sps->vshift[1];
 
         luma_mc_uni(s, dst0, s->frame->linesize[0], ref1->frame,
                     &current_mv.mv[1], x0, y0, nPbW, nPbH,
@@ -1900,11 +1984,19 @@ static void hls_prediction_unit(HEVCContext *s, int x0, int y0,
                           1, x0_c, y0_c, nPbW_c, nPbH_c, &current_mv,
                           s->sh.chroma_weight_l1[current_mv.ref_idx[1]][1], s->sh.chroma_offset_l1[current_mv.ref_idx[1]][1]);
         }
+        for (int i = 0; i < blk8x8_num_y; i++) {
+            for(int k = 0; k < blk8x8_num_x; k++) {
+                current_fragment = (blk8x8_start_y + i) * s->blk8x8_width + blk8x8_start_x + k;
+                s->motion_val[1][current_fragment][0] = current_mv.mv[1].x;
+                s->motion_val[1][current_fragment][1] = current_mv.mv[1].y;
+                s->motion_ref[current_fragment] = 1;
+            }
+        }
     } else if (current_mv.pred_flag == PF_BI) {
-        int x0_c = x0 >> s->ps.sps->hshift[1];
-        int y0_c = y0 >> s->ps.sps->vshift[1];
-        int nPbW_c = nPbW >> s->ps.sps->hshift[1];
-        int nPbH_c = nPbH >> s->ps.sps->vshift[1];
+        //int x0_c = x0 >> s->ps.sps->hshift[1];
+        //int y0_c = y0 >> s->ps.sps->vshift[1];
+        //int nPbW_c = nPbW >> s->ps.sps->hshift[1];
+        //int nPbH_c = nPbH >> s->ps.sps->vshift[1];
 
         luma_mc_bi(s, dst0, s->frame->linesize[0], ref0->frame,
                    &current_mv.mv[0], x0, y0, nPbW, nPbH,
@@ -1916,6 +2008,17 @@ static void hls_prediction_unit(HEVCContext *s, int x0, int y0,
 
             chroma_mc_bi(s, dst2, s->frame->linesize[2], ref0->frame, ref1->frame,
                          x0_c, y0_c, nPbW_c, nPbH_c, &current_mv, 1);
+        }
+
+        for (int i = 0; i < blk8x8_num_y; i++) {
+            for(int k = 0; k < blk8x8_num_x; k++) {
+                current_fragment = (blk8x8_start_y + i) * s->blk8x8_width + blk8x8_start_x + k;
+                s->motion_val[0][current_fragment][0] = current_mv.mv[0].x;
+                s->motion_val[0][current_fragment][1] = current_mv.mv[0].y;
+                s->motion_val[1][current_fragment][0] = current_mv.mv[1].x;
+                s->motion_val[1][current_fragment][1] = current_mv.mv[1].y;
+                s->motion_ref[current_fragment] = 2;
+            }
         }
     }
 }
@@ -3257,6 +3360,8 @@ static int hevc_decode_frame(AVCodecContext *avctx, void *data, int *got_output,
         *got_output = 1;
     }
 
+    set_motion_vector_core_hevc(avctx, data, s->motion_val, 1, AV_CODEC_ID_HEVC);
+
     return avpkt->size;
 }
 
@@ -3311,6 +3416,15 @@ static av_cold int hevc_decode_free(AVCodecContext *avctx)
 
     av_freep(&s->cabac_state);
 
+    if (s->motion_val[0]){
+        av_freep(&s->motion_val[0]);
+    }
+    if (s->motion_val[1]) {
+        av_freep(&s->motion_val[1]);
+    }
+    if (s->motion_ref){
+        av_freep(&s->motion_ref);
+    }
     for (i = 0; i < 3; i++) {
         av_freep(&s->sao_pixel_buffer_h[i]);
         av_freep(&s->sao_pixel_buffer_v[i]);
@@ -3520,6 +3634,24 @@ static av_cold int hevc_decode_init(AVCodecContext *avctx)
         else
             s->threads_type = FF_THREAD_SLICE;
 
+    int width = avctx->width;
+    int height = avctx->height;
+    s->blk8x8_width = width/8;
+    s->blk8x8_height = height/8;
+    int f_fragment_count = s->blk8x8_width * s->blk8x8_height;
+    int b_fragment_count = s->blk8x8_width * s->blk8x8_height;
+
+    s->motion_val[0] = av_mallocz_array(f_fragment_count, sizeof(*s->motion_val[0]));
+    s->motion_val[1] = av_mallocz_array(b_fragment_count, sizeof(*s->motion_val[1]));
+    if (!s->motion_val[0] || !s->motion_val[1])
+    {
+        av_log(NULL, AV_LOG_ERROR, "motion val is NULL.\n");
+    }
+    s->motion_ref = av_mallocz_array(f_fragment_count, sizeof(*s->motion_ref));
+    if (!s->motion_ref)
+    {
+        av_log(NULL, AV_LOG_ERROR, "motion ref is NULL.\n");
+    }
     return 0;
 }
 

@@ -786,38 +786,37 @@ static int rv10_decode_frame(AVCodecContext *avctx, void *data, int *got_frame,
         }
 
 #ifdef GET_MVS
-		// set mvs
-		if (s->pict_type == AV_PICTURE_TYPE_B || s->low_delay || s->last_picture_ptr)
-		{
-			t_mb_info_for_mv mb_info_mv;
-			mb_info_mv.low_delay = s->low_delay;
-			mb_info_mv.mb_width = s->mb_width;
-			mb_info_mv.mb_height = s->mb_height;
-			mb_info_mv.mb_stride = s->mb_stride;
-			mb_info_mv.mbskip_table = s->mbskip_table;
-			mb_info_mv.quarter_sample = s->quarter_sample;
+        // set mvs
+        if (s->pict_type == AV_PICTURE_TYPE_B || s->low_delay || s->last_picture_ptr)
+        {
+            t_mb_info_for_mv mb_info_mv;
+            mb_info_mv.low_delay = s->low_delay;
+            mb_info_mv.mb_width = s->mb_width;
+            mb_info_mv.mb_height = s->mb_height;
+            mb_info_mv.mb_stride = s->mb_stride;
+            mb_info_mv.mbskip_table = s->mbskip_table;
+            mb_info_mv.quarter_sample = s->quarter_sample;
 
-			if (s->pict_type == AV_PICTURE_TYPE_B || s->low_delay)
-			{
-				//Picture
-				mb_info_mv.mbtype = s->current_picture_ptr->mb_type;
-				mb_info_mv.qscale_table = s->current_picture_ptr->qscale_table;
-				mb_info_mv.motion_val[0] = s->current_picture_ptr->motion_val[0];
-				mb_info_mv.motion_val[1] = s->current_picture_ptr->motion_val[1];
-				av_frame_ref(pict, s->current_picture_ptr->f);
-				set_motion_vector(s->avctx, pict, &mb_info_mv);
-			} else {
-				//Picture
-				mb_info_mv.mbtype = s->last_picture_ptr->mb_type;
-				mb_info_mv.qscale_table = s->last_picture_ptr->qscale_table;
-				mb_info_mv.motion_val[0] = s->last_picture_ptr->motion_val[0];
-				mb_info_mv.motion_val[1] = s->last_picture_ptr->motion_val[1];
-				av_frame_ref(pict, s->last_picture_ptr->f);
-				set_motion_vector(s->avctx, pict, &mb_info_mv);
-			}
-		}
+            if (s->pict_type == AV_PICTURE_TYPE_B || s->low_delay)
+            {
+                //Picture
+                mb_info_mv.mbtype = s->current_picture_ptr->mb_type;
+                mb_info_mv.qscale_table = s->current_picture_ptr->qscale_table;
+                mb_info_mv.motion_val[0] = s->current_picture_ptr->motion_val[0];
+                mb_info_mv.motion_val[1] = s->current_picture_ptr->motion_val[1];
+                av_frame_ref(pict, s->current_picture_ptr->f);
+                set_motion_vector(s->avctx, pict, &mb_info_mv);
+            } else {
+                //Picture
+                mb_info_mv.mbtype = s->last_picture_ptr->mb_type;
+                mb_info_mv.qscale_table = s->last_picture_ptr->qscale_table;
+                mb_info_mv.motion_val[0] = s->last_picture_ptr->motion_val[0];
+                mb_info_mv.motion_val[1] = s->last_picture_ptr->motion_val[1];
+                av_frame_ref(pict, s->last_picture_ptr->f);
+                set_motion_vector(s->avctx, pict, &mb_info_mv);
+            }
+        }
 #endif
-
         // so we can detect if frame_end was not called (find some nicer solution...)
         s->current_picture_ptr = NULL;
     }

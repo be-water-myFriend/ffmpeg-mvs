@@ -1,3 +1,10 @@
+ffbuild/*
+INSTALL.md
+RELEASE_NOTES
+RELEASE
+Changelog
+CREDITS
+COPYING.*
 *.a
 *.o
 *.o.*
@@ -38,7 +45,7 @@ test.obj
 /src
 /mapfile
 /tools/python/__pycache__/
-
+CONTRIBUTING.md
 /host/
 /doc/
 /ffbuild/

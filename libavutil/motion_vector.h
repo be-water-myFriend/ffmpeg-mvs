@@ -50,6 +50,10 @@ typedef struct AVMotionVector {
      * src_x = dst_x + motion_x / motion_scale
      * src_y = dst_y + motion_y / motion_scale
      */
+    /**
+     * motion_x = (src_x - dst_x) * motion_scale;
+     * motion_y = (src_y - dst_y) * motion_scale; 
+     */
     int32_t motion_x, motion_y;
     uint16_t motion_scale;
 } AVMotionVector;

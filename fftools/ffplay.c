@@ -48,8 +48,6 @@
 #include "libavcodec/avfft.h"
 #include "libswresample/swresample.h"
 #include "libavutil/motion_vector.h"
-
-
 #if CONFIG_AVFILTER
 # include "libavfilter/avfilter.h"
 # include "libavfilter/buffersink.h"
@@ -627,25 +625,31 @@ static int decoder_decode_frame(Decoder *d, AVFrame *frame, AVSubtitle *sub) {
                         }
                         break;
                 }
+                //av_log(NULL, AV_LOG_ERROR, "ret=%d\n",ret);
                 if (ret == AVERROR_EOF) {
                     d->finished = d->pkt_serial;
                     avcodec_flush_buffers(d->avctx);
                     return 0;
                 }
-                if (ret >= 0) {
+
+                if (ret >= 0)
+                {
                     int i;
                     AVFrameSideData *sd;
 
                     sd = av_frame_get_side_data(frame, AV_FRAME_DATA_MOTION_VECTORS);
                     if (sd) {
+                        av_log(NULL, AV_LOG_ERROR, "sd->size:%d,w:%d,h:%d,wxh:%d\n", sd->size,frame->width,frame->height,frame->width*frame->height);
                         const AVMotionVector *mvs = (const AVMotionVector *)sd->data;
                         for (i = 0; i < sd->size / sizeof(*mvs); i++) {
                             const AVMotionVector *mv = &mvs[i];
-                            printf("%d,%2d,%2d,%2d,%4d,%4d,%4d,%4d,0x%"PRIx64"\n",
-                                d->avctx->frame_number, mv->source,
-                                mv->w, mv->h, mv->src_x, mv->src_y,
-                                mv->dst_x, mv->dst_y, mv->flags);
+                            //printf("%d,%2d,%2d,%2d,%4d,%4d,%4d,%4d,0x%"PRIx64"\n",
+                            //    d->avctx->frame_number, mv->source,
+                            //    mv->w, mv->h, mv->src_x, mv->src_y,
+                            //    mv->dst_x, mv->dst_y, mv->flags);
+                            printf("%d,motion_x=%d, motion_y=%d,motion_scale=%d, mv_x is %d, mv_y is %d\n", d->avctx->frame_number, mv->motion_x, mv->motion_y, mv->motion_scale,(mv->src_x-mv->dst_x)*mv->motion_scale, (mv->src_y-mv->dst_y)*mv->motion_scale);
                         }
+                        av_log(NULL, AV_LOG_ERROR, "sd end\n");
                     }
                     return 1;
                 }
@@ -2650,10 +2654,12 @@ static int stream_component_open(VideoState *is, int stream_index)
         av_dict_set_int(&opts, "lowres", stream_lowres, 0);
     if (avctx->codec_type == AVMEDIA_TYPE_VIDEO || avctx->codec_type == AVMEDIA_TYPE_AUDIO)
         av_dict_set(&opts, "refcounted_frames", "1", 0);
-	if (avctx->codec_type == AVMEDIA_TYPE_VIDEO) {
+    if (avctx->codec_type == AVMEDIA_TYPE_VIDEO)
+    {
         av_dict_set(&opts, "flags2", "+export_mvs", 0);
     }
     if ((ret = avcodec_open2(avctx, codec, &opts)) < 0) {
+        fprintf(stderr, "Failed to open %s codec\n", av_get_media_type_string(avctx->codec_type));
         goto fail;
     }
     if ((t = av_dict_get(opts, "", NULL, AV_DICT_IGNORE_SUFFIX))) {
@@ -3731,6 +3737,8 @@ int main(int argc, char **argv)
         exit(1);
     }
 
+//display_disable = 1;
+//audio_disable = 1;
     if (display_disable) {
         video_disable = 1;
     }
@@ -3787,10 +3795,7 @@ int main(int argc, char **argv)
             do_exit(NULL);
         }
     }
-
-	av_log_set_level(AV_LOG_DEBUG);
-
-
+av_log_set_level(AV_LOG_DEBUG);
     is = stream_open(input_filename, file_iformat);
     if (!is) {
         av_log(NULL, AV_LOG_FATAL, "Failed to initialize VideoState!\n");

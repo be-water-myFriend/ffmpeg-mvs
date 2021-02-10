@@ -905,10 +905,7 @@ static int finalize_frame(H264Context *h, AVFrame *dst, H264Picture *out, int *g
          (h->avctx->flags2 & AV_CODEC_FLAG2_SHOW_ALL) ||
          out->recovered)) {
 
-        if (!h->avctx->hwaccel &&
-            (out->field_poc[0] == INT_MAX ||
-             out->field_poc[1] == INT_MAX)
-           ) {
+        if (!h->avctx->hwaccel && (out->field_poc[0] == INT_MAX || out->field_poc[1] == INT_MAX)) {
             int p;
             AVFrame *f = out->f;
             int field = out->field_poc[0] == INT_MAX;
@@ -924,50 +921,20 @@ static int finalize_frame(H264Context *h, AVFrame *dst, H264Picture *out, int *g
                 linesizes[p] = 2*f->linesize[p];
             }
 
-            av_image_copy(dst_data, linesizes, src_data, linesizes,
-                          f->format, f->width, f->height>>1);
+            av_image_copy(dst_data, linesizes, src_data, linesizes, f->format, f->width, f->height>>1);
         }
 
         ret = output_frame(h, dst, out);
         if (ret < 0)
             return ret;
-		
-		set_motion_vector_core(h->avctx, dst, NULL,
-						out->mb_type,
-						out->qscale_table,
-						out->motion_val,
-						NULL,
-						h->mb_width, h->mb_height, h->mb_stride, 1, AV_CODEC_ID_H264);
-#ifdef GET_MVS
-		// set mvs
-		{
-			t_mb_info_for_mv mb_info_mv;
-			mb_info_mv.low_delay = 0;
-			mb_info_mv.mb_width = h->mb_width;
-			mb_info_mv.mb_height = h->mb_height;
-			mb_info_mv.mb_stride = h->mb_stride;
-			mb_info_mv.mbskip_table = NULL;
-			mb_info_mv.quarter_sample = 1;
-
-			//Picture
-			mb_info_mv.mbtype = out->mb_type;
-			mb_info_mv.qscale_table = out->qscale_table;
-			mb_info_mv.motion_val[0] = out->motion_val[0];
-			mb_info_mv.motion_val[1] = out->motion_val[1];
-			set_motion_vector(h->avctx, dst, &mb_info_mv);
-		}
-#endif
+        set_motion_vector_core(h->avctx, dst, NULL,
+                                out->mb_type,
+                                out->qscale_table,
+                                out->motion_val,
+                                NULL,
+                                h->mb_width, h->mb_height, h->mb_stride, 1, AV_CODEC_ID_H264);
 
         *got_frame = 1;
-
-        if (CONFIG_MPEGVIDEO) {
-            ff_print_debug_info2(h->avctx, dst, NULL,
-                                 out->mb_type,
-                                 out->qscale_table,
-                                 out->motion_val,
-                                 NULL,
-                                 h->mb_width, h->mb_height, h->mb_stride, 1);
-        }
     }
 
     return 0;

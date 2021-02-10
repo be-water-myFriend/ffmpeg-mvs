@@ -568,6 +568,14 @@ typedef struct HEVCContext {
 
     int nal_length_size;    ///< Number of bytes used for nal length (1, 2 or 4)
     int nuh_layer_id;
+
+    /**
+     * Macroblock motioon vector
+     */
+    int16_t (*motion_val[2])[2];
+    int *motion_ref;
+    int blk8x8_width;
+    int blk8x8_height;
 } HEVCContext;
 
 /**
