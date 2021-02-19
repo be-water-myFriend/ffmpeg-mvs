@@ -31,9 +31,31 @@
 #include "mpegvideo.h"
 #include "get_mvs.h"
 
-static int add_mb(AVMotionVector *mb, uint32_t mb_type,
-                  int dst_x, int dst_y,
-                  int motion_x, int motion_y, int motion_scale,
+#define BLOCK_X_VP8 (2 * mb_x + (k & 1))
+#define BLOCK_Y_VP8 (2 * mb_y + (k >> 1))
+
+/*
+* function name: add_mb
+* function param:
+*   AVMotionVector *mb: macroblock struct pointer
+    uint32_t mb_type: macroblock type
+    int dst_x: pixel index x
+    int dst_y: pixel index y
+    int motion_x: motion index x
+    int motion_y: motion index y
+    int motion_scale: motion scale times
+    int direction: ref direction
+*
+* return value: invalid
+*/
+
+static int add_mb(AVMotionVector *mb,
+                  uint32_t mb_type,
+                  int dst_x,
+                  int dst_y,
+                  int motion_x,
+                  int motion_y,
+                  int motion_scale,
                   int direction)
 {
     mb->w = IS_8X8(mb_type) || IS_8X16(mb_type) ? 8 : 16;
@@ -50,9 +72,26 @@ static int add_mb(AVMotionVector *mb, uint32_t mb_type,
     return 1;
 }
 
+/*
+* function name: add_mb_vp8
+* function param:
+*   AVMotionVector *mb: macroblock struct pointer
+    uint32_t mb_type: macroblock type
+    int dst_x: pixel index x
+    int dst_y: pixel index y
+    int motion_x: motion index x
+    int motion_y: motion index y
+    int motion_scale: motion scale times
+    int direction: ref direction
+*
+* return value: invalid
+*/
 static int add_mb_vp8(AVMotionVector *mb,
-                  int dst_x, int dst_y,
-                  int motion_x, int motion_y, int motion_scale,
+                  int dst_x,
+                  int dst_y,
+                  int motion_x,
+                  int motion_y,
+                  int motion_scale,
                   int direction)
 {
     mb->w = 8;
@@ -69,10 +108,36 @@ static int add_mb_vp8(AVMotionVector *mb,
     return 1;
 }
 
-void set_motion_vector_core(AVCodecContext *avctx, AVFrame *pict, uint8_t *mbskip_table,
-                         uint32_t *mbtype_table, int8_t *qscale_table, int16_t (*motion_val[2])[2],
-                         int *low_delay,
-                         int mb_width, int mb_height, int mb_stride, int quarter_sample, enum AVCodecID id)
+/*
+* function name: set_motion_vector_core
+* function param:
+*   AVCodecContext *avctx,: AVCodec Context handle pointer
+    AVFrame *pict: AVFrame struct pointer
+    uint8_t *mbskip_table: macroblock skip table
+    uint32_t *mbtype_table: macroblock type table
+    int8_t *qscale_table: qscale table
+    int16_t (*motion_val[2])[2]: motion val array
+    int *low_delay: B frame
+    int mb_width: macroblock width
+    int mb_height: macroblock height
+    int mb_stride: macroblock stride
+    int quarter_sample: mv sample times
+    enum AVCodecID id: codec id
+*
+* return value: void 
+*/
+void set_motion_vector_core(AVCodecContext *avctx,
+                            AVFrame *pict,
+                            uint8_t *mbskip_table,
+                            uint32_t *mbtype_table,
+                            int8_t *qscale_table,
+                            int16_t (*motion_val[2])[2],
+                            int *low_delay,
+                            int mb_width,
+                            int mb_height,
+                            int mb_stride,
+                            int quarter_sample,
+                            enum AVCodecID id)
 {
     if ((avctx->export_side_data & AV_CODEC_EXPORT_DATA_MVS) && (mbtype_table || id == AV_CODEC_ID_VP8) && motion_val[0]) {
         const int shift = 1 + quarter_sample;
@@ -101,8 +166,7 @@ void set_motion_vector_core(AVCodecContext *avctx, AVFrame *pict, uint8_t *mbski
                         int sy = mb_y * 16 + 4 + 8 * (i >> 1);
                         int xy = (mb_x * 2 + (i & 1)) +
                                 (mb_y * 2 + (i >> 1)) * mb_width;
-#define BLOCK_X_VP8 (2 * mb_x + (k & 1))
-#define BLOCK_Y_VP8 (2 * mb_y + (k >> 1))
+
                         int mx = motion_val[direction][xy][0];
                         int my = motion_val[direction][xy][1];
                         mbcount += add_mb_vp8(mvs + mbcount, sx, sy, mx, my, scale, direction);
@@ -184,6 +248,17 @@ void set_motion_vector_core(AVCodecContext *avctx, AVFrame *pict, uint8_t *mbski
         av_freep(&mvs);
     }
 }
+
+/*
+* function name: set_motion_vector_all
+* function param:
+*   MpegEncContext *s: MpegEncoder Context handle pointer
+    Picture *p: Picture struct
+    AVFrame *pict: AVFrame struct pointer
+    enum AVCodecID id: codec id
+*
+* return value: invalid
+*/
 void set_motion_vector_all(MpegEncContext *s, Picture *p, AVFrame *pict, enum AVCodecID id)
 {
     set_motion_vector_core(s->avctx, pict, s->mbskip_table, p->mb_type,
@@ -191,6 +266,20 @@ void set_motion_vector_all(MpegEncContext *s, Picture *p, AVFrame *pict, enum AV
                          s->mb_width, s->mb_height, s->mb_stride, s->quarter_sample, id);
 }
 
+
+/*
+* function name: set_motion_vector_core_hevc
+* function param:
+*   AVCodecContext *avctx,: AVCodec Context handle pointer
+    AVFrame *pict: AVFrame struct pointer
+    int *motion_ref: motion ref
+    int8_t *qscale_table: qscale table
+    int16_t (*motion_val[2])[2]: motion val array
+    int quarter_sample: mv sample times
+    enum AVCodecID id: codec id
+*
+* return value: invalid
+*/
 void set_motion_vector_core_hevc(AVCodecContext *avctx, AVFrame *pict, int16_t (*motion_val[2])[2],
                         int *motion_ref, int quarter_sample, enum AVCodecID id)
 {
@@ -204,7 +293,7 @@ void set_motion_vector_core_hevc(AVCodecContext *avctx, AVFrame *pict, int16_t (
          * for the maximum number of MB (4 MB in case of IS_8x8) */
         AVMotionVector *mvs = av_malloc_array(blk8x8_num_x * blk8x8_num_y, 2 * sizeof(AVMotionVector));
         if (!mvs) {
-            av_log(NULL, AV_LOG_ERROR, "mvs is NULL\n");
+            av_log(NULL, AV_LOG_ERROR, "Hevc mvs is NULL\n");
             return;
         }
 
@@ -247,10 +336,10 @@ void set_motion_vector_core_hevc(AVCodecContext *avctx, AVFrame *pict, int16_t (
         if (mbcount) {
             AVFrameSideData *sd;
 
-            av_log(avctx, AV_LOG_DEBUG, "Adding %d MVs info to frame %d\n", mbcount, avctx->frame_number);
+            av_log(avctx, AV_LOG_DEBUG, "Hevc Adding %d MVs info to frame %d\n", mbcount, avctx->frame_number);
             sd = av_frame_new_side_data(pict, AV_FRAME_DATA_MOTION_VECTORS, mbcount * sizeof(AVMotionVector));
             if (!sd) {
-                av_log(NULL, AV_LOG_ERROR, "av_frame_new_side_data failed.\n");
+                av_log(NULL, AV_LOG_ERROR, "Hevc av_frame_new_side_data failed.\n");
                 av_freep(&mvs);
                 return;
             }
