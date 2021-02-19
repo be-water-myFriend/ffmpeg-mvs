@@ -192,9 +192,9 @@ void set_motion_vector_all(MpegEncContext *s, Picture *p, AVFrame *pict, enum AV
 }
 
 void set_motion_vector_core_hevc(AVCodecContext *avctx, AVFrame *pict, int16_t (*motion_val[2])[2],
-                        int quarter_sample, enum AVCodecID id)
+                        int *motion_ref, int quarter_sample, enum AVCodecID id)
 {
-    if ((avctx->export_side_data & AV_CODEC_EXPORT_DATA_MVS) && motion_val[0]) {
+    if ((avctx->export_side_data & AV_CODEC_EXPORT_DATA_MVS) && motion_val[0] && motion_val[1] && motion_ref) {
         const int shift = 1 + quarter_sample;
         const int scale = 1 << shift;
         int blk8x8_x, blk8x8_y, mbcount = 0;
@@ -212,14 +212,32 @@ void set_motion_vector_core_hevc(AVCodecContext *avctx, AVFrame *pict, int16_t (
         {
             int direction = 0;      //we just only need luma motion vector in HEVC.
             int i = 0;
+            int mx;
+            int my;
             for (blk8x8_y = 0; blk8x8_y < blk8x8_num_y; blk8x8_y++) {
                 for (blk8x8_x = 0; blk8x8_x < blk8x8_num_x; blk8x8_x++) {
                     int sx = blk8x8_x * 8;
                     int sy = blk8x8_y * 8;
                     int xy = blk8x8_x + (blk8x8_y * blk8x8_num_x);
 
-                    int mx = motion_val[direction][xy][0];
-                    int my = motion_val[direction][xy][1];
+                    int ref = motion_ref[xy];
+                    if (ref == 0 || ref == 1) {
+                        direction = ref;
+                        mx = motion_val[direction][xy][0];
+                        my = motion_val[direction][xy][1];
+                    } else {
+                        int m0_sum = abs(motion_val[0][xy][0]) + abs(motion_val[0][xy][1]);
+                        int m1_sum = abs(motion_val[1][xy][0]) + abs(motion_val[1][xy][1]);
+
+                        if (m0_sum > m1_sum) {
+                            direction = 0;
+                        } else {
+                            direction = 1;
+                        }
+                        mx = motion_val[direction][xy][0];
+                        my = motion_val[direction][xy][1];
+                    }
+
                     mbcount += add_mb_vp8(mvs + mbcount, sx, sy, mx, my, scale, direction);
                 }
             }

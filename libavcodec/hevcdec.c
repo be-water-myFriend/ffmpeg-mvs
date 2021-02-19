@@ -3360,7 +3360,7 @@ static int hevc_decode_frame(AVCodecContext *avctx, void *data, int *got_output,
         *got_output = 1;
     }
 
-    set_motion_vector_core_hevc(avctx, data, s->motion_val, 1, AV_CODEC_ID_HEVC);
+    set_motion_vector_core_hevc(avctx, data, s->motion_val, s->motion_ref, 1, AV_CODEC_ID_HEVC);
 
     return avpkt->size;
 }
