@@ -61,6 +61,10 @@
 
 #include <assert.h>
 
+#define SAVE_MOTION_VECTOR
+#ifdef SAVE_MOTION_VECTOR
+FILE *f_save_file;
+#endif
 const char program_name[] = "ffplay";
 const int program_birth_year = 2003;
 
@@ -643,11 +647,17 @@ static int decoder_decode_frame(Decoder *d, AVFrame *frame, AVSubtitle *sub) {
                         const AVMotionVector *mvs = (const AVMotionVector *)sd->data;
                         for (i = 0; i < sd->size / sizeof(*mvs); i++) {
                             const AVMotionVector *mv = &mvs[i];
+#ifdef SAVE_MOTION_VECTOR
+                        if (f_save_file != NULL) {
+                            fprintf(f_save_file, "Frame:%d,motion_x=%d, motion_y=%d,motion_scale=%d, mv_x is %d, mv_y is %d\n", d->avctx->frame_number, mv->motion_x, mv->motion_y, mv->motion_scale,(mv->src_x-mv->dst_x)*mv->motion_scale, (mv->src_y-mv->dst_y)*mv->motion_scale);
+                        }
+#else
                             //printf("%d,%2d,%2d,%2d,%4d,%4d,%4d,%4d,0x%"PRIx64"\n",
                             //    d->avctx->frame_number, mv->source,
                             //    mv->w, mv->h, mv->src_x, mv->src_y,
                             //    mv->dst_x, mv->dst_y, mv->flags);
-                            printf("%d,motion_x=%d, motion_y=%d,motion_scale=%d, mv_x is %d, mv_y is %d\n", d->avctx->frame_number, mv->motion_x, mv->motion_y, mv->motion_scale,(mv->src_x-mv->dst_x)*mv->motion_scale, (mv->src_y-mv->dst_y)*mv->motion_scale);
+                            printf("Frame:%d,motion_x=%d, motion_y=%d,motion_scale=%d, mv_x is %d, mv_y is %d\n", d->avctx->frame_number, mv->motion_x, mv->motion_y, mv->motion_scale,(mv->src_x-mv->dst_x)*mv->motion_scale, (mv->src_y-mv->dst_y)*mv->motion_scale);
+#endif
                         }
                         av_log(NULL, AV_LOG_ERROR, "sd end\n");
                     }
@@ -1230,6 +1240,10 @@ static void stream_component_close(VideoState *is, int stream_index)
 {
     AVFormatContext *ic = is->ic;
     AVCodecParameters *codecpar;
+
+    if (f_save_file != NULL) {
+        fclose(f_save_file);
+    }
 
     if (stream_index < 0 || stream_index >= ic->nb_streams)
         return;
@@ -3796,6 +3810,13 @@ int main(int argc, char **argv)
         }
     }
 av_log_set_level(AV_LOG_DEBUG);
+#ifdef SAVE_MOTION_VECTOR
+f_save_file = fopen("motion_vector.txt", "wb");
+if (f_save_file == NULL)
+{
+    av_log(NULL, AV_LOG_ERROR, "motion_vector file open failed.\n");
+}
+#endif
     is = stream_open(input_filename, file_iformat);
     if (!is) {
         av_log(NULL, AV_LOG_FATAL, "Failed to initialize VideoState!\n");
